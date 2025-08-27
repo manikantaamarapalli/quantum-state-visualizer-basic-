@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Quantum Bloch Sphere Visualizer (n ≤ 5)</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- math.js for complex numbers, Plotly for 3D plotting -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Quantum Bloch Sphere Visualizer</h1>
+
+    <div class="controls">
+      <label>Number of qubits (1 - 5):</label>
+      <input id="numQ" type="number" min="1" max="5" value="2" />
+      <button id="btnSet">Set</button>
+      <div class="small note">Basis ordering is |q0 q1 … q(n-1)⟩, where q0 is the leftmost bit.</div>
+
+      <div id="afterSet" class="hidden">
+        <label>Initial basis state:</label>
+        <select id="basisState"></select>
+
+        <hr />
+
+        <label>Gate to add:</label>
+        <select id="gateType">
+          <optgroup label="Single-qubit (fixed)">
+            <option value="X">X (Pauli-X)</option>
+            <option value="Y">Y (Pauli-Y)</option>
+            <option value="Z">Z (Pauli-Z)</option>
+            <option value="H">H (Hadamard)</option>
+            <option value="S">S</option>
+            <option value="Sdg">S†</option>
+            <option value="T">T</option>
+            <option value="Tdg">T†</option>
+          </optgroup>
+          <optgroup label="Single-qubit (parameterized)">
+            <option value="Rx">Rx(θ)</option>
+            <option value="Ry">Ry(θ)</option>
+            <option value="Rz">Rz(θ)</option>
+            <option value="Phase">Phase(φ)</option>
+          </optgroup>
+          <optgroup label="Two-qubit">
+            <option value="CNOT">CNOT (control,target)</option>
+            <option value="CZ">CZ (control,target)</option>
+            <option value="SWAP">SWAP (a,b)</option>
+          </optgroup>
+          <optgroup label="Three-qubit">
+            <option value="CCNOT">CCNOT / Toffoli (c1,c2; target)</option>
+          </optgroup>
+        </select>
+
+        <!-- Single-qubit target -->
+        <div id="singleTargetDiv">
+          <label>Target qubit:</label>
+          <select id="targetQ"></select>
+        </div>
+
+        <!-- Angle for parameterized gates -->
+        <div id="angleDiv" class="hidden">
+          <label><span id="angleLabel">θ (degrees):</span></label>
+          <input id="angleDeg" type="number" step="1" value="90" />
+        </div>
+
+        <!-- CNOT / CZ -->
+        <div id="cnotDiv" class="hidden">
+          <label>Control qubit:</label>
+          <select id="controlQ"></select>
+          <label>Target qubit:</label>
+          <select id="targetQ2"></select>
+        </div>
+
+        <!-- SWAP -->
+        <div id="swapDiv" class="hidden">
+          <label>Qubit A:</label>
+          <select id="swapA"></select>
+          <label>Qubit B:</label>
+          <select id="swapB"></select>
+        </div>
+
+        <!-- Toffoli -->
+        <div id="ccnotDiv" class="hidden">
+          <label>Control 1:</label>
+          <select id="cc_c1"></select>
+          <label>Control 2:</label>
+          <select id="cc_c2"></select>
+          <label>Target:</label>
+          <select id="cc_t"></select>
+        </div>
+
+        <div class="row gap">
+          <button id="btnAddGate">Add Gate</button>
+          <button id="btnUndo">Undo Last</button>
+          <button id="btnClearGates">Clear Gates</button>
+        </div>
+
+        <div id="gatesList"></div>
+
+        <hr />
+
+        <button id="btnRun">Run Simulation</button>
+      </div>
+    </div>
+
+    <hr />
+
+    <div id="results"></div>
+
+    <div id="blochSpheres" class="grid"></div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
