@@ -22,6 +22,28 @@
         <label>Initial basis state:</label>
         <select id="basisState"></select>
 
+        <div id="basisRepresentation" class="small note"></div>
+
+        <!-- NEW: show basis density matrices toggle and format -->
+        <div class="row gap small">
+          <label style="align-self:center;">
+            <input type="checkbox" id="showBasisDensity" />
+            &nbsp; Show basis density matrices (all basis states)
+          </label>
+
+          <label style="align-self:center;">
+            Format:
+            <select id="basisDensityFormat">
+              <option value="aligned">Aligned (pre)</option>
+              <option value="table">Table</option>
+            </select>
+          </label>
+
+          
+        </div>
+
+        <div id="basisDensityContainer" class="small" style="margin-top:8px;"></div>
+
         <hr />
 
         <label>Gate to add:</label>
@@ -99,10 +121,13 @@
         <div id="gatesList"></div>
 
         <hr />
+        <button id="btnToggleResultFormat" title="Toggle final/reduced density matrices format">Toggle Results Matrix Format</button>
 
         <button id="btnRun">Run Simulation</button>
       </div>
+
     </div>
+
 
     <hr />
 
