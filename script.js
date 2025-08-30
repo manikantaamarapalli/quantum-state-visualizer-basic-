@@ -47,6 +47,12 @@ const btnSet = document.getElementById('btnSet');
 const afterSet = document.getElementById('afterSet');
 const numQInput = document.getElementById('numQ');
 const basisSelect = document.getElementById('basisState');
+const basisRepresentation = document.getElementById('basisRepresentation');
+
+const showBasisDensity = document.getElementById('showBasisDensity');
+const basisDensityFormat = document.getElementById('basisDensityFormat');
+const basisDensityContainer = document.getElementById('basisDensityContainer');
+const btnToggleResultFormat = document.getElementById('btnToggleResultFormat');
 
 const gateType = document.getElementById('gateType');
 const singleTargetDiv = document.getElementById('singleTargetDiv');
@@ -82,6 +88,7 @@ const blochSpheresDiv = document.getElementById('blochSpheres');
 let nQ = 2;
 let stateVec = []; // array of math.complex
 let gateSequence = []; // each gate object: {type, params, angle?}
+let resultDensityAsTable = false; // toggles final/reduced density format
 
 // ---------- Setup handlers ----------
 btnSet.addEventListener('click', onSet);
@@ -90,6 +97,27 @@ btnAddGate.addEventListener('click', onAddGate);
 btnUndo.addEventListener('click', onUndo);
 btnClearGates.addEventListener('click', onClearGates);
 btnRun.addEventListener('click', onRun);
+basisSelect.addEventListener('change', updateBasisRepresentation);
+
+showBasisDensity.addEventListener('change', () => {
+  if (showBasisDensity.checked) renderAllBasisDensity(nQ);
+  else basisDensityContainer.innerHTML = '';
+});
+basisDensityFormat.addEventListener('change', () => {
+  if (showBasisDensity.checked) renderAllBasisDensity(nQ);
+});
+btnToggleResultFormat.addEventListener('click', () => {
+  resultDensityAsTable = !resultDensityAsTable;
+  // re-render results if already present
+  if (stateVec && stateVec.length) {
+    const rho = outerProduct(stateVec);
+    const reducedList = [];
+    for (let q=0; q<nQ; q++){
+      reducedList.push(partialTrace(rho, nQ, q));
+    }
+    displayResults(stateVec, rho, reducedList);
+  }
+});
 
 // initialize UI
 onGateTypeChange();
@@ -106,26 +134,43 @@ function onSet(){
   renderGateList();
   resultsDiv.innerHTML = "<div class='small'>Initial state set. Add gates and click Run.</div>";
   blochSpheresDiv.innerHTML = "";
+  updateBasisRepresentation();
+
+  // If user had "show basis density" checked, refresh it
+  if (showBasisDensity.checked) renderAllBasisDensity(nQ);
 }
 
 function populateBasis(n){
   basisSelect.innerHTML = "";
   for (let i=0;i< (1<<n); i++){
+    const bits = i.toString(2).padStart(n, '0');
     const opt = document.createElement('option');
-    opt.value = i.toString(2).padStart(n, '0');
-    opt.text = '|' + opt.value + '⟩';
+    opt.value = bits;
+    // Compose tensor-product style: |b0⟩ ⊗ |b1⟩ ⊗ ... (q0 leftmost)
+    const tensorParts = bits.split('').map(b => `|${b}⟩`).join(' ⊗ ');
+    opt.text = `|${bits}⟩    (${tensorParts})`;
+    opt.title = `${tensorParts}  — ordering q0 (left) to q${n-1} (right)`;
     basisSelect.appendChild(opt);
   }
   // default to |00...0⟩
   basisSelect.value = '0'.repeat(n);
 }
 
+function updateBasisRepresentation(){
+  // show a clearer tensor-product representation for currently selected basis state
+  const bits = basisSelect.value || '0'.repeat(nQ);
+  const parts = bits.split('').map((b, idx) => {
+    return `q${idx}: |${b}⟩`;
+  }).join('  ⊗  ');
+  basisRepresentation.textContent = `Tensor product (leftmost = q0): ${parts}`;
+}
+
 function populateQubitSelectors(n){
   const sels = [targetQ, controlQ, targetQ2, swapA, swapB, cc_c1, cc_c2, cc_t];
   sels.forEach(s => s.innerHTML = '');
   for (let i=0;i<n;i++){
-    const opt = (id)=>{ const o=document.createElement('option'); o.value=i; o.text='q'+i; return o; };
-    sels.forEach(s => s.appendChild(opt()));
+    const createOpt = (label) => { const o=document.createElement('option'); o.value=i; o.text='q'+i; return o; };
+    sels.forEach(s => s.appendChild(createOpt()));
   }
 }
 
@@ -258,6 +303,7 @@ function applySingleQubitGate(psi, n, target, U){
   const out = Array(dim).fill(0).map(()=>c(0,0));
   for (let i=0;i<dim;i++){
     const bin = i.toString(2).padStart(n, '0');
+    // note: target is index in bitstring where leftmost is 0
     const bit = parseInt(bin[target]);
     for (let j=0;j<2;j++){
       const newBin = bin.substring(0,target) + j.toString() + bin.substring(target+1);
@@ -409,6 +455,9 @@ function onRun(){
 
   displayResults(stateVec, rho, reducedList);
   drawAllBloch(reducedList);
+
+  // if user wants basis density matrices visible, refresh them (they are independent of gate sequence)
+  if (showBasisDensity.checked) renderAllBasisDensity(nQ);
 }
 
 // ---------- Display & plotting ----------
@@ -425,13 +474,14 @@ function displayResults(psi, rho, reducedList){
   }
   s += "</pre></div>";
 
-  s += "<div class='result-block'><h3>Full density matrix ρ</h3><pre>";
-  s += formatComplexMatrix(rho);
-  s += "</pre></div>";
+  s += "<div class='result-block'><h3>Full density matrix ρ</h3>";
+  s += resultDensityAsTable ? formatMatrixAsTable(rho) : `<pre>${formatComplexMatrix(rho)}</pre>`;
+  s += "</div>";
 
   for (let q=0;q<reducedList.length;q++){
     s += "<div class='result-block'>";
-    s += `<h3>Reduced ρ (qubit ${q})</h3><pre>${formatComplexMatrix(reducedList[q])}</pre>`;
+    s += `<h3>Reduced ρ (qubit ${q})</h3>`;
+    s += resultDensityAsTable ? formatMatrixAsTable(reducedList[q]) : `<pre>${formatComplexMatrix(reducedList[q])}</pre>`;
     const bloch = densityToBloch(reducedList[q]);
     s += `<div class='small'>Bloch vector: (${bloch.x.toFixed(6)}, ${bloch.y.toFixed(6)}, ${bloch.z.toFixed(6)})</div>`;
     s += "</div>";
@@ -444,6 +494,49 @@ function formatComplexMatrix(mat){
   return mat.map(row => row.map(c=>`${cre(c).toFixed(6)}${cim(c)>=0?'+':'-'}${Math.abs(cim(c)).toFixed(6)}j`).join('\t')).join('\n');
 }
 
+function formatMatrixAsTable(mat){
+  let html = "<table class='density-table'>";
+  for (let row of mat){
+    html += "<tr>";
+    for (let cell of row){
+      html += `<td>${cre(cell).toFixed(6)}${cim(cell)>=0?'+':'-'}${Math.abs(cim(cell)).toFixed(6)}j</td>`;
+    }
+    html += "</tr>";
+  }
+  html += "</table>";
+  return html;
+}
+
+// ---------- Basis density rendering (new) ----------
+function renderAllBasisDensity(n){
+  // show density matrices for all basis states |b> where b runs 0..2^n-1
+  // Format controlled by basisDensityFormat.value ('aligned' or 'table')
+  const format = basisDensityFormat.value || 'aligned';
+  const total = 1<<n;
+  let html = '';
+  for (let i=0;i<total;i++){
+    const bits = i.toString(2).padStart(n,'0');
+    html += `<div class="basis-density-block">`;
+    html += `<div class="basis-density-title">|${bits}⟩  —  ( ${bits.split('').map(b => `|${b}⟩`).join(' ⊗ ')} )</div>`;
+
+    // build full density matrix for this basis state: it's a matrix with 1 at (i,i) and 0 elsewhere
+    const dim = 1<<n;
+    const rho = Array(dim).fill(0).map(()=>Array(dim).fill(c(0,0)));
+    rho[i][i] = c(1,0);
+
+    if (format === 'table') {
+      html += formatMatrixAsTable(rho);
+    } else {
+      // aligned pre format — reusing formatComplexMatrix but need to limit width for readability
+      html += `<div class="aligned-pre">${formatComplexMatrix(rho)}</div>`;
+    }
+
+    html += `</div>`;
+  }
+  basisDensityContainer.innerHTML = html;
+}
+
+// ---------- Bloch plotting ----------
 function drawAllBloch(reducedList){
   blochSpheresDiv.innerHTML = '';
   for (let q=0; q<reducedList.length; q++){
@@ -482,4 +575,60 @@ function plotBloch(containerId, bloch, q){
   const layout = { title: `Qubit ${q}`, margin:{l:0,r:0,b:0,t:30},
                   scene: { aspectmode:'cube', xaxis:{range:[-1,1]}, yaxis:{range:[-1,1]}, zaxis:{range:[-1,1]} } };
   Plotly.newPlot(containerId, data, layout, {displayModeBar:false});
+}
+
+function drawAllBloch(reducedList){
+  blochSpheresDiv.innerHTML = '';
+  for (let q=0; q<reducedList.length; q++){
+    const block = document.createElement('div');
+    block.id = 'bloch_'+q; 
+    block.style.width = '350px'; 
+    block.style.height = '350px';
+    blochSpheresDiv.appendChild(block);
+
+    const bloch = densityToBloch(reducedList[q]);
+    plotBloch(block.id, bloch, q);
+
+    // Add Properties button
+    const propDiv = document.createElement('div');
+    propDiv.className = 'bloch-properties';
+    const btn = document.createElement('button');
+    btn.textContent = 'Properties';
+    btn.onclick = ()=> showBlochProperties(bloch, propDiv, q);
+    propDiv.appendChild(btn);
+
+    blochSpheresDiv.appendChild(propDiv);
+  }
+}
+
+function showBlochProperties(bloch, container, q){
+  // remove old checkboxes except button
+  const btn = container.querySelector('button');
+  container.innerHTML = '';
+  container.appendChild(btn);
+
+  // Determine properties
+  const len = Math.sqrt(bloch.x**2 + bloch.y**2 + bloch.z**2);
+  const props = [
+    {name:'Pure state', value: len > 0.9999},
+    {name:'Mixed state', value: len <= 0.9999},
+    {name:'More |0⟩ than |1⟩', value: bloch.z > 0.01},
+    {name:'More |1⟩ than |0⟩', value: bloch.z < -0.01},
+    {name:'Superposition along X-axis', value: Math.abs(bloch.x) > 0.01},
+    {name:'Superposition along Y-axis', value: Math.abs(bloch.y) > 0.01},
+    {name:'Along +Z axis', value: bloch.z > 0.99},
+    {name:'Along -Z axis', value: bloch.z < -0.99}
+  ];
+
+  // Append checkboxes
+  props.forEach(p=>{
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = p.value;
+    checkbox.disabled = true;
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(p.name));
+    container.appendChild(label);
+  });
 }
