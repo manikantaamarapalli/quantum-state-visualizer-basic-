@@ -464,7 +464,10 @@ function onRun(){
 function displayResults(psi, rho, reducedList){
   resultsDiv.innerHTML = '';
   const dim = psi.length;
-  let s = "<div class='result-block'><h3>Final state amplitudes (nonzero)</h3><pre>";
+
+  // ----- Final state amplitudes -----
+  let s = "<div class='result-block'><h3>Final state amplitudes (nonzero)</h3>";
+  s += "<div style='overflow-x:auto;'><pre>";
   for (let i=0;i<dim;i++){
     const mag = Math.hypot(cre(psi[i]), cim(psi[i]));
     if (mag > 1e-9){
@@ -472,16 +475,26 @@ function displayResults(psi, rho, reducedList){
       s += `|${i.toString(2).padStart(nQ,'0')}> : ${amp}\n`;
     }
   }
-  s += "</pre></div>";
+  s += "</pre></div></div>";
 
+  // ----- Full density matrix -----
   s += "<div class='result-block'><h3>Full density matrix ρ</h3>";
-  s += resultDensityAsTable ? formatMatrixAsTable(rho) : `<pre>${formatComplexMatrix(rho)}</pre>`;
+  if (resultDensityAsTable){
+    s += "<div style='overflow-x:auto;'>" + formatMatrixAsTable(rho) + "</div>";
+  } else {
+    s += "<div style='overflow-x:auto;'><pre>" + formatComplexMatrix(rho) + "</pre></div>";
+  }
   s += "</div>";
 
+  // ----- Reduced density matrices -----
   for (let q=0;q<reducedList.length;q++){
     s += "<div class='result-block'>";
     s += `<h3>Reduced ρ (qubit ${q})</h3>`;
-    s += resultDensityAsTable ? formatMatrixAsTable(reducedList[q]) : `<pre>${formatComplexMatrix(reducedList[q])}</pre>`;
+    if (resultDensityAsTable){
+      s += "<div style='overflow-x:auto;'>" + formatMatrixAsTable(reducedList[q]) + "</div>";
+    } else {
+      s += "<div style='overflow-x:auto;'><pre>" + formatComplexMatrix(reducedList[q]) + "</pre></div>";
+    }
     const bloch = densityToBloch(reducedList[q]);
     s += `<div class='small'>Bloch vector: (${bloch.x.toFixed(6)}, ${bloch.y.toFixed(6)}, ${bloch.z.toFixed(6)})</div>`;
     s += "</div>";
@@ -489,6 +502,7 @@ function displayResults(psi, rho, reducedList){
 
   resultsDiv.innerHTML = s;
 }
+
 
 function formatComplexMatrix(mat){
   return mat.map(row => row.map(c=>`${cre(c).toFixed(6)}${cim(c)>=0?'+':'-'}${Math.abs(cim(c)).toFixed(6)}j`).join('\t')).join('\n');
@@ -580,26 +594,41 @@ function plotBloch(containerId, bloch, q){
 function drawAllBloch(reducedList){
   blochSpheresDiv.innerHTML = '';
   for (let q=0; q<reducedList.length; q++){
+    // Container for this qubit
+    const qubitContainer = document.createElement('div');
+    qubitContainer.style.display = 'inline-block';
+    qubitContainer.style.verticalAlign = 'top';
+    qubitContainer.style.margin = '10px';
+
+    // Sphere container
     const block = document.createElement('div');
     block.id = 'bloch_'+q; 
     block.style.width = '350px'; 
     block.style.height = '350px';
-    blochSpheresDiv.appendChild(block);
+    qubitContainer.appendChild(block);
 
     const bloch = densityToBloch(reducedList[q]);
-    plotBloch(block.id, bloch, q);
 
-    // Add Properties button
+    // Defer plotting
+    setTimeout(() => {
+      plotBloch(block.id, bloch, q);
+    }, 0);
+
+    // Properties panel
     const propDiv = document.createElement('div');
     propDiv.className = 'bloch-properties';
     const btn = document.createElement('button');
     btn.textContent = 'Properties';
-    btn.onclick = ()=> showBlochProperties(bloch, propDiv, q);
+    btn.onclick = () => showBlochProperties(bloch, propDiv, q);
     propDiv.appendChild(btn);
 
-    blochSpheresDiv.appendChild(propDiv);
+    qubitContainer.appendChild(propDiv);
+
+    // Add the whole container to main div
+    blochSpheresDiv.appendChild(qubitContainer);
   }
 }
+
 
 function showBlochProperties(bloch, container, q){
   // remove old checkboxes except button
