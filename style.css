@@ -43,3 +43,87 @@ pre { white-space:pre-wrap; word-break:break-word; }
 .gate-right button:hover { background:#55606b; }
 .gate-right .rm { background:#e55353; }
 .gate-right .rm:hover { background:#c54242; }
+
+/* Density matrix table */
+.density-table {
+  border-collapse: collapse;
+  margin-top: 6px;
+}
+.density-table td {
+  border: 1px solid #ccc;
+  padding: 4px 8px;
+  text-align: center;
+  font-family: "Courier New", monospace;
+}
+
+/* Basis density container */
+.basis-density-block {
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: #f8fbff;
+  border: 1px solid #e6f0fb;
+}
+.basis-density-title { font-weight:700; margin-bottom:6px; }
+
+/* align small monospace pre for aligned view */
+.aligned-pre { font-family: "Courier New", monospace; white-space: pre; background: #fff; padding: 6px; border-radius: 4px; border:1px solid #eee; }
+
+/* Bloch sphere properties panel */
+.bloch-properties {
+  position: relative;
+  margin-top: 8px;
+  padding: 10px;
+  background: #eef6ff;
+  border: 1px solid #cce0ff;
+  border-radius: 8px;
+  font-size: 13px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  z-index: 1000;
+}
+
+/* Labels in the panel */
+.bloch-properties label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  cursor: default;
+}
+
+/* Custom checkboxes */
+.bloch-properties input[type="checkbox"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #2d9cdb;
+  border-radius: 4px;
+  position: relative;
+  background: #fff;
+  cursor: not-allowed; /* since disabled */
+}
+
+/* Tick mark for checked state */
+.bloch-properties input[type="checkbox"]:checked::after {
+  content: '✔';
+  position: absolute;
+  top: -2px;
+  left: 1px;
+  font-size: 14px;
+  color: #2d9cdb; /* blue tick */
+}
+
+/* Close button inside panel (optional) */
+.bloch-properties button {
+  margin-top: 6px;
+  background: #2d9cdb;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #fff;
+}
+.bloch-properties button:hover {
+  background: #2080b8;
+}
