@@ -127,3 +127,12 @@ pre { white-space:pre-wrap; word-break:break-word; }
 .bloch-properties button:hover {
   background: #2080b8;
 }
+.basis-density-block {
+  overflow-x: auto;
+}
+.density-table td {
+  min-width: 50px; /* prevents very small cells */
+}
+#btnToggleResultFormat {
+  overflow-x: auto;
+}
